@@ -7,10 +7,10 @@
 > `assumptions.json`, run `uv run python decision.py` and update the tables in
 > the last three sections. Delete this box when done.
 
-- **Name**:
-- **Student ID**:
-- **Email**:
-- **Group**: [BBADBA 5A | BBADBA 5B | PPLEDBA 5A | BDBA 3A]
+- **Name**: Niccolò Pragliola
+- **Student ID**: 19873
+- **Email**: npragliola.ieu2022@student.ie.edu
+- **Group**: BBADBA 5A
 
 ## Business problem, and the cost of being wrong
 
