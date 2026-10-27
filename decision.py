@@ -56,9 +56,7 @@ def outcome_shares(scores, y, low, high):
     scores, y = np.asarray(scores), np.asarray(y)
 
     def shares(s):
-        passed = (s < low).mean()
-        truck = (s >= high).mean()
-        return np.array([passed, max(0.0, 1 - passed - truck), truck])
+        return np.array([(s < low).mean(), ((s >= low) & (s < high)).mean(), (s >= high).mean()])
 
     return shares(scores[y == 1]), shares(scores[y == 0])
 
