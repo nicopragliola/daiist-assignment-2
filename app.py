@@ -42,7 +42,7 @@ POLICIES = (
             "missed_snowy_per_1000": 1, "needless_trucks_per_1000": 1})
     .rename(columns={
         "policy": "Policy", "low": "Low", "high": "High", "cost_per_1000": "€ per 1,000",
-        "review_share": "% reviewed", "reviews_per_day": "Reviews/day", "operators_needed": "Operators",
+        "review_share": "% reviewed", "reviews_per_day": "Reviews/night", "operators_needed": "Operators",
         "missed_snowy_per_1000": "Missed snowy /1,000", "needless_trucks_per_1000": "Needless trucks /1,000",
     })
     .drop(columns="snowy_caught_share")
@@ -109,8 +109,8 @@ def threshold_view(low, high):
     summary = (
         f"### Expected cost: €{e['cost_per_1000']:,.0f} per 1,000 images\n"
         f"- Sent to an operator: **{e['review_share']:.1%}** of images "
-        f"= {e['reviews_per_day']:,.0f} a day = {e['operators_needed']:.1f} operators "
-        f"({fits} the {ASSUMPTIONS['operators']} available, capacity {capacity:,.0f}/day)\n"
+        f"= {e['reviews_per_day']:,.0f} a night = {e['operators_needed']:.1f} operators "
+        f"({fits} the {ASSUMPTIONS['operators']} available, capacity {capacity:,.0f}/night)\n"
         f"- Per 1,000 real images: {e['missed_snowy_per_1000']:.1f} snowy roads missed, "
         f"{e['needless_trucks_per_1000']:.1f} trucks sent for nothing\n"
         f"- Snowy roads caught (truck or operator): {e['snowy_caught_share']:.1%}\n\n"
@@ -238,7 +238,7 @@ with gr.Blocks(title="Winter road treatment") as demo:
             f"Assumptions (assumptions.json): truck run €{ASSUMPTIONS['cost_truck_run_eur']}, "
             f"missed snowy road €{ASSUMPTIONS['cost_missed_snow_eur']}, review "
             f"{ASSUMPTIONS['review_seconds']} s at €{ASSUMPTIONS['operator_eur_per_hour']}/h, base rate "
-            f"{ASSUMPTIONS['base_rate']:.0%}, {ASSUMPTIONS['images_per_day']:,} images a day, "
+            f"{ASSUMPTIONS['base_rate']:.0%}, {ASSUMPTIONS['images_per_day']:,} images a night, "
             f"{ASSUMPTIONS['operators']} operators x {ASSUMPTIONS['operator_hours_per_day']} h."
         )
         gr.Dataframe(

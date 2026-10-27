@@ -1,11 +1,11 @@
 # Assignment 2 Report
 
-> **How to use this draft.** The tables and facts below come straight from the
-> pipeline's outputs (`results/`) and are correct for the committed run. Every
-> line marked ✍️ is yours to write in your own words, then delete the ✍️
-> prompt. The cost figures are still the placeholders in `assumptions.json`:
-> once you set your own and run `uv run python decision.py`, the tables in the
-> last three sections change and need updating. Delete this box when done.
+> **How to use this draft.** The tables, figures and sources below come
+> straight from the pipeline's outputs (`results/`) and `assumptions.json`, and
+> are correct for the committed run. Every line marked ✍️ is yours to write in
+> your own words; then delete the ✍️ prompt. If you change any figure in
+> `assumptions.json`, run `uv run python decision.py` and update the tables in
+> the last three sections. Delete this box when done.
 
 - **Name**:
 - **Student ID**:
@@ -20,15 +20,21 @@ dashcam image of the stretch and gives one of three outcomes: **pass** (do
 nothing), **operator review** (a person looks at the image and decides), or
 **send a truck**.
 
-- **One case** = one image of one road segment, checked once per 2-hour cycle.
+- **Scenario size:** one region of a state road network, about 6,000
+  lane-miles, split into 1,200 segments of about 5 lane-miles each. Every
+  segment is checked once per 2-hour cycle over a 12-hour night, which gives
+  **7,200 images a night**.
+- **One case** = one image of one segment in one 2-hour cycle.
 - **Positive class** = the road *needs treatment*: the image shows **Snow** or
   **Slush**. Negative = **Clear** or **Wet**.
-- **False negative**: a snowy road is left untreated.
-- **False positive**: a truck is sent to a road that did not need it.
+- **False negative:** a snowy road is left untreated for the next 2 hours
+  (≈ €800 of expected crash cost, see costing below).
+- **False positive:** a truck pass is made on a road that did not need it
+  (≈ €65).
 
 ✍️ Who acts on the decision today, and how they make it.
-✍️ What a missed snowy road costs and why; what an unnecessary truck run costs
-and why; why the first is worse and roughly by how much.
+✍️ Why a miss is worse than a false alarm, and roughly by how much (about 12
+times, from the figures below).
 ✍️ Why Wet counts as "no treatment needed" in your framing.
 
 ## Dataset
@@ -73,7 +79,7 @@ its numbers?); night images could let the model learn "dark = snow"; twins
 could inflate test accuracy. Say how you checked each one (see the subsets in
 the next section).
 ✍️ How the test split's 72.6% snow differs from real winter nights, and why
-that is the reason for the base rate in the costing section.
+that is the reason for the 15% base rate in the costing section.
 
 ## Finetuning and baselines
 
@@ -150,19 +156,29 @@ image called Snow still gets a truck; a Slush image called Wet does not.
 
 ## Cost matrix and operating point
 
-**Current figures (`assumptions.json`, placeholders to replace):**
+**Figures used (`assumptions.json`).** USD converted at about 0.9 EUR per USD.
 
-| Item | Value |
-|---|---|
-| Truck sent, road needed it (TP) | €80 |
-| Truck sent, road was fine (FP) | €80 |
-| Snowy road left untreated (FN) | €1,000 |
-| Nothing done, road fine (TN) | €0 |
-| Operator review | 15 s at €25/h = €0.10 per image |
-| Base rate: share of images that really need treatment | 15% |
-| Images per day | 10,000 |
+| Item | Value | Basis |
+|---|---|---|
+| Truck pass, road needed it (TP) | **€65** | UDOT spends about $1M per storm on 24,000 lane-miles [1], i.e. about $42 per lane-mile per storm. A 5-lane-mile segment is about $210 per storm. Assuming about 3 passes per storm, one pass is about $70, or €65. |
+| Truck pass, road was fine (FP) | **€65** | Same truck, salt and driver time, with nothing gained. |
+| Snowy road left untreated for 2 hours (FN) | **€800** | Expected crash cost that treating would have avoided. **(a) Cost per crash on snowy pavement ≈ €12,000:** US snowy/slushy pavement averages 174,446 crashes, 41,597 injured and 538 deaths a year [2]. Priced at about $4,200 per property-damage crash and $21,000 per injury crash (2015 values) [3], plus $1.6M economic cost per death [4], that is about $13,000 per crash. **(b) Crashes avoided ≈ 0.07:** assume about 1,000 vehicles over 2.5 road-miles in the 2 hours. The dry crash rate is about 2 per million vehicle-miles (NHTSA 2019: ~6.8M police-reported crashes over ~3.3 trillion vehicle-miles), and snow-covered asphalt is about 15 times riskier [5], so about 0.078 crashes. Salting cuts crashes by about 88% [6], so about 0.07 are avoided. **0.07 × €12,000 ≈ €800.** |
+| Nothing done, road fine (TN) | €0 | No action and no harm. |
+| Operator review | 15 s at €30/h = **€0.125** per image | Assumption: one glance at one dashcam image; an operator wage plus overheads. |
+| Base rate (share of images that really need treatment) | **15%** | Salt Lake City has about 31 days a year with measurable snow [7], about 21% of a 150-day winter. Assume roads are snowy or slushy in about two thirds of the night's checks on those days, giving about 14%, rounded to 15%. |
+| Images per night | **7,200** | 1,200 segments × 6 two-hour cycles. |
+| Operator capacity | **2,880 reviews a night** | 2 night-shift operators, each spending 6 hours of a 12-hour shift on reviews, at 240 images an hour. |
 
-✍️ Where each figure comes from and why. "I assumed X because Y."
+Sources:
+[1] UDOT snow operations, via [ABC4](https://www.abc4.com/news/local-news/udot-snow-removal-what-goes-into-keeping-our-utah-roads-clear/amp/) and [UDOT](https://connect.udot.utah.gov/2023/11/16/udot-snow-plow-operators-are-ready-for-winter/);
+[2] [FHWA Road Weather Management, 2005–2014 averages](https://ops.fhwa.dot.gov/weather/roadimpact.htm);
+[3] [Nebraska DOT crash cost estimates](https://dot.nebraska.gov:443/media/jygdpzmn/trcostest.pdf);
+[4] [NHTSA, Economic and Societal Impact of Motor Vehicle Crashes, 2019](https://www.nhtsa.gov/node/136981);
+[5] [Marquette University pavement and accidents study](https://www.eng.mu.edu/drakopoa/web_documents/Wet%20pavement%20MU%20report/PCC%20and%20asphalt%20pavement%20texture%20relation%20to%20accidents.pdf);
+[6] [Kuemmel & Hanbali (1992), Accident Analysis of Ice Control Operations](https://epublications.marquette.edu/transportation_trc-noise/3/);
+[7] [Climate of Salt Lake City](https://en.wikipedia.org/wiki/Climate_of_Salt_Lake_City).
+
+✍️ In your own words: which of these figures you trust most and least, and why.
 
 **How the expected cost is computed:** on the validation split, measure for
 each threshold what share of snowy images and what share of fine images get a
@@ -174,27 +190,34 @@ It is chosen on validation and reported once on test.
 ![Cost against threshold](results/cost_curve.png)
 
 - **Chosen threshold (model decides alone): 0.51.** Expected cost on test:
-  €21,060 per 1,000 images.
-- **Cross-check:** a truck is worth sending when P(snowy) × €1,000 >
-  €80, i.e. P(snowy) > 0.08. The model was trained on 70% snow, so its
-  score overstates real-world P(snowy). Converting 0.08 into the model's
-  score scale gives **0.53**, close to the 0.51 the sweep found.
+  €17,070 per 1,000 images.
+- **Cross-check:** a truck is worth sending when P(snowy) × €800 > €65, i.e.
+  P(snowy) > 0.08. The model was trained on 70% snow, so its score overstates
+  real-world P(snowy). Converting 0.08 into the model's score scale gives
+  **0.54**, close to the 0.51 the sweep found.
 
 **Sensitivity** (one figure changed at a time; threshold re-chosen on
 validation, priced on test; full table in `results/sensitivity.csv`):
 
 | Changed | Value | Best threshold | € per 1,000 (model alone) |
 |---|---|---|---|
-| Missed snowy road | €250 | 0.90 | 15,814 |
-| Missed snowy road | €500 | 0.53 | 19,397 |
-| Missed snowy road | **€1,000 (current)** | **0.51** | **21,060** |
-| Missed snowy road | €2,000 | 0.43 | 24,786 |
-| Missed snowy road | €4,000 | 0.05 | 29,304 |
-| Truck run | €40 | 0.43 | 12,393 |
-| Truck run | €320 | 0.90 | 63,254 |
-| Base rate | 5% | 0.53 | 11,726 |
-| Base rate | 25% | 0.43 | 30,747 |
-| Base rate | 40% | 0.05 | 44,110 |
+| Missed snowy road | €200 | 0.90 | 12,823 |
+| Missed snowy road | €400 | 0.53 | 15,739 |
+| Missed snowy road | **€800 (used)** | **0.51** | **17,070** |
+| Missed snowy road | €1,600 | 0.43 | 20,055 |
+| Missed snowy road | €3,200 | 0.05 | 23,793 |
+| Truck pass | €32.50 | 0.43 | 10,028 |
+| Truck pass | €130 | 0.53 | 31,478 |
+| Truck pass | €260 | 0.90 | 51,290 |
+| Base rate | 5% | 0.53 | 9,513 |
+| Base rate | 25% | 0.43 | 24,913 |
+| Base rate | 40% | 0.05 | 35,828 |
+
+The threshold stays between 0.43 and 0.53 while the miss cost is €400–1,600,
+the truck pass €32.50–130 and the base rate 5–25%. It jumps to 0.90 once a
+miss costs less than about 3 truck passes (miss €200, or truck €260), and
+falls to 0.05 when misses become very expensive (€3,200) or snow is common
+(40%).
 
 ✍️ The assumption that would most change your answer, and the value at which
 it flips ("the answer changes if X drops below Z").
@@ -202,46 +225,54 @@ it flips ("the answer changes if X drops below Z").
 ## What a person still has to check
 
 **Thresholds (chosen on validation within the operators' capacity):** pass
-below **0.03**, send a truck from **1.00**, operator review in between.
-Capacity = 2 operators × 8 h × 240 images/h = 3,840 reviews a day.
+below **0.03**, send a truck from **1.00**, operator review in between. In
+practice the operator confirms almost every truck, and the model clears the
+images that are obviously fine.
 
 | On the test images | Pass | Operator review | Send a truck |
 |---|---|---|---|
 | Actually fine (170) | 129 | 41 | 0 |
 | Actually needs treatment (451) | 1 | 421 | 29 |
 
-At the 15% base rate, **34.5%** of images go to an operator: **3,450 a day**,
-15 s each, **1.8 operators** of 8 hours. That is within the 2 available.
+At the 15% base rate, **34.5%** of images go to an operator: **2,484 a
+night**, 15 s each, **1.7 operators** of 6 review hours. That is within the 2
+available (capacity 2,880).
 
 **Priced on the test split, per 1,000 images:**
 
 | Policy | € per 1,000 | Reviewed | Operators | Missed snowy /1,000 | Needless trucks /1,000 |
 |---|---|---|---|---|---|
-| Perfect model (reference) | 12,000 | 0% | 0 | 0 | 0 |
-| Do nothing | 150,000 | 0% | 0 | 150 | 0 |
-| Send a truck everywhere | 80,000 | 0% | 0 | 0 | 850 |
-| Operator checks every image | 12,104 | 100% | 5.2 | 0 | 0 |
-| Pretrained model, zero-shot, alone | 79,039 | 0% | 0 | 13.3 | 685 |
-| Finetuned model alone | 21,060 | 0% | 0 | 3.3 | 75 |
-| **Finetuned model + operator review** | **12,342** | 34.5% | 1.8 | 0.3 | 0 |
+| Perfect model (reference) | 9,750 | 0% | 0 | 0 | 0 |
+| Do nothing | 120,000 | 0% | 0 | 150 | 0 |
+| Send a truck everywhere | 65,000 | 0% | 0 | 0 | 850 |
+| Operator checks every image | 9,875 | 100% | 5.0 | 0 | 0 |
+| Pretrained model, zero-shot, alone | 64,053 | 0% | 0 | 13.3 | 685 |
+| Finetuned model alone | 17,070 | 0% | 0 | 3.3 | 75 |
+| **Finetuned model + operator review** | **10,038** | 34.5% | 1.7 | 0.3 | 0 |
 
-✍️ Is 3,450 reviews a day with 2 operators realistic? What happens on a heavy
-snow night?
+Per night (7,200 images), that is about €72,300 for model + review, €122,900
+for the model alone, €71,100 if an operator checked everything (needing 5
+operators instead of 2), and €864,000 for doing nothing.
+
+✍️ Is 2,484 reviews a night with 2 operators realistic? What happens on a
+heavy snow night, when far more images are uncertain?
 ✍️ Compare your design with the three alternatives (do nothing, a person
 checks everything, model alone), and say why "a person checks everything" is
 not the answer even though it is slightly cheaper per image.
-✍️ Why the operator ends up confirming almost every truck (a review costs
-€0.10, a wrong truck €80), and whether that changes with your own figures.
+✍️ Why the operator ends up confirming almost every truck: a review costs
+€0.125 and a needless truck pass €65.
 
 ## Limitations & next steps
 
 ✍️ Real limitations, each with a concrete fix. Candidates from the results:
 dashcam frames rather than fixed cameras; one region and one season; near-twin
-frames across splits; only 52 Clear test images; operator assumed always
-right; one image treated as independent of the segment's previous checks.
+frames across splits; only 52 Clear test images; the miss cost rests on an
+assumed traffic volume; the operator is assumed always right; each image is
+treated as independent of the segment's previous checks.
 
 ## Generative AI use disclosure
 
 ✍️ What AI did and what you did. Facts to include: an AI assistant (Claude)
 suggested the topic options and the dataset, wrote the pipeline and dashboard
-code, and executed the training run; say which decisions and analysis are yours.
+code, executed the training run, and proposed the cost figures with their
+sources. Say which decisions and analysis are yours.

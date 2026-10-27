@@ -3,7 +3,7 @@
   "low": 0.03,
   "high": 1.0,
   "zero_shot_threshold": 0.01,
-  "review_capacity_per_day": 3840.0,
-  "break_even_real_probability": 0.08,
-  "break_even_model_score": 0.5339901782129289
+  "review_capacity_per_day": 2880.0,
+  "break_even_real_probability": 0.08125,
+  "break_even_model_score": 0.538184143038784
 }
