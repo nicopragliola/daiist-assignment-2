@@ -29,12 +29,40 @@ SWEEP = pd.read_csv(RESULTS / "cost_sweep.csv")
 CHOSEN = json.loads((RESULTS / "operating_point.json").read_text())
 METRICS = json.loads((RESULTS / "metrics.json").read_text())
 STATS = json.loads((RESULTS / "dataset_stats.json").read_text())
-PER_CLASS = pd.read_csv(RESULTS / "per_class.csv").round(3)
-POLICIES = pd.read_csv(RESULTS / "policies.csv").round(2).replace(float("inf"), "never")
-SENSITIVITY = pd.read_csv(RESULTS / "sensitivity.csv").round(2)
+PER_CLASS = (
+    pd.read_csv(RESULTS / "per_class.csv")
+    .round(3)
+    .rename(columns={"class": "Class", "test_images": "Test images", "precision": "Precision", "recall": "Recall"})
+)
+POLICIES = (
+    pd.read_csv(RESULTS / "policies.csv")
+    .replace(float("inf"), "never")
+    .assign(review_share=lambda d: (100 * d["review_share"]).round(1))
+    .round({"cost_per_1000": 0, "reviews_per_day": 0, "operators_needed": 1,
+            "missed_snowy_per_1000": 1, "needless_trucks_per_1000": 1})
+    .rename(columns={
+        "policy": "Policy", "low": "Low", "high": "High", "cost_per_1000": "€ per 1,000",
+        "review_share": "% reviewed", "reviews_per_day": "Reviews/day", "operators_needed": "Operators",
+        "missed_snowy_per_1000": "Missed snowy /1,000", "needless_trucks_per_1000": "Needless trucks /1,000",
+    })
+    .drop(columns="snowy_caught_share")
+)
+SENSITIVITY = (
+    pd.read_csv(RESULTS / "sensitivity.csv")
+    .assign(value=lambda d: [f"{v:g}" + (" (current)" if c else "") for v, c in zip(d["value"], d["is_current"])])
+    .round({"best_threshold": 2, "cost_per_1000": 0, "do_nothing_cost_per_1000": 0,
+            "truck_everywhere_cost_per_1000": 0})
+    .rename(columns={
+        "assumption": "Assumption changed", "value": "Value", "best_threshold": "Best threshold",
+        "cost_per_1000": "€ per 1,000 (model)", "do_nothing_cost_per_1000": "€ per 1,000 (do nothing)",
+        "truck_everywhere_cost_per_1000": "€ per 1,000 (truck everywhere)",
+    })
+    [["Assumption changed", "Value", "Best threshold", "€ per 1,000 (model)",
+      "€ per 1,000 (do nothing)", "€ per 1,000 (truck everywhere)"]]
+)
 EXAMPLES = sorted(str(p) for p in (RESULTS / "examples").glob("*.jpg"))
 
-OUTCOMES = ["Pass (do nothing)", "Operator review", "Send a truck"]
+OUTCOMES = ["Pass", "Operator review", "Send a truck"]
 
 
 def decide(score: float, low: float, high: float) -> str:
@@ -68,7 +96,7 @@ def predict(image, low, high):
 
 def three_way_matrix(low, high) -> pd.DataFrame:
     outcome = [decide(s, low, high) for s in TEST["p_treat"]]
-    actual = TEST["needs_treatment"].map({1: f"Needs treatment ({'/'.join(POSITIVE)})", 0: "Fine (Clear/Wet)"})
+    actual = TEST["needs_treatment"].map({1: f"Snowy ({'/'.join(POSITIVE)})", 0: "Fine (Clear/Wet)"})
     matrix = pd.crosstab(actual, pd.Series(outcome, name="outcome")).reindex(columns=OUTCOMES, fill_value=0)
     return matrix.reset_index().rename(columns={"needs_treatment": "Actual road"})
 
@@ -193,10 +221,9 @@ with gr.Blocks(title="Winter road treatment") as demo:
 
     with gr.Tab("Thresholds and cost"):
         with gr.Row():
-            with gr.Column():
-                matrix = gr.Dataframe(label="Test images by actual road and outcome")
-                summary = gr.Markdown()
-            curve = gr.Plot(label="Cost against threshold")
+            matrix = gr.Dataframe(label="Test images by actual road and outcome")
+            summary = gr.Markdown()
+        curve = gr.Plot(label="Cost against threshold")
 
     with gr.Tab("Per-class results"):
         gr.Dataframe(PER_CLASS, label="Per class on the test split (4-class prediction)")

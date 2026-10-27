@@ -143,6 +143,8 @@ def compare_policies(test: pd.DataFrame, chosen: dict, a: dict) -> pd.DataFrame:
     """The five ways of running this, priced on the test split."""
     y, s = test["needs_treatment"], test["p_treat"]
     rows = {
+        # Reference: trucks go exactly where needed. The gap to this row is the cost of mistakes.
+        "Perfect model (reference)": evaluate(y, y, 0.5, 0.5, a),
         "Do nothing (never send a truck)": evaluate(s, y, NEVER, NEVER, a),
         "Send a truck everywhere (majority class)": evaluate(s, y, 0, 0, a),
         "Operator checks every image": evaluate(s, y, 0, NEVER, a),
